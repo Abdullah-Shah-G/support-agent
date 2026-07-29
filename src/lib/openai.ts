@@ -20,19 +20,17 @@ After outputting the JSON, summarize the ticket to the user and ask for confirma
 export async function generateReply(
   messages: ChatMessage[]
 ): Promise<string> {
-  const history = messages.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user" as "user" | "model",
-    parts: [{ text: m.content }],
-  }));
+  const conversation = messages
+    .map((m) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
+    .join("\n\n");
 
-  const lastMsg = history.pop();
+  const fullPrompt = `${SYSTEM_PROMPT}\n\n${conversation}\n\nAssistant:`;
+
   const model = getClient().getGenerativeModel({
-    model: "gemini-1.5-flash",
-    systemInstruction: SYSTEM_PROMPT,
+    model: "gemini-2.0-flash",
     generationConfig: { maxOutputTokens: 300, temperature: 0.2 },
   });
 
-  const chat = model.startChat({ history });
-  const result = await chat.sendMessage(lastMsg?.parts[0].text || "");
+  const result = await model.generateContent(fullPrompt);
   return result.response.text() || "I'm sorry, I couldn't process that.";
 }

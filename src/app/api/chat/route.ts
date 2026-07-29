@@ -86,11 +86,12 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   } catch (error: any) {
     console.error("Chat error:", error);
-    const isQuota = error?.status === 429 || error?.code === "insufficient_quota";
-    const message = isQuota
-      ? "The AI service is currently unavailable due to API quota limits. Please check your OpenAI billing."
-      : "Internal server error";
-    return NextResponse.json({ error: message }, { status: isQuota ? 503 : 500 });
+    const msg = error?.message || error?.toString() || "";
+    const isQuota = msg.includes("quota") || msg.includes("429") || msg.includes("insufficient_quota");
+    return NextResponse.json(
+      { error: isQuota ? "API quota exceeded. Check your Gemini API billing at https://aistudio.google.com." : "Internal server error" },
+      { status: isQuota ? 503 : 500 }
+    );
   }
 }
 
@@ -135,9 +136,10 @@ export async function PUT(request: Request) {
     }
   } catch (error: any) {
     console.error("Confirmation error:", error);
-    const isQuota = error?.status === 429 || error?.code === "insufficient_quota";
+    const msg = error?.message || error?.toString() || "";
+    const isQuota = error?.status === 429 || error?.code === "insufficient_quota" || msg.includes("quota") || msg.includes("429");
     return NextResponse.json(
-      { error: isQuota ? "API quota exceeded. Check your OpenAI billing." : "Failed to process confirmation" },
+      { error: isQuota ? "API quota exceeded. Check your Gemini billing at https://aistudio.google.com." : "Failed to process confirmation" },
       { status: isQuota ? 503 : 500 }
     );
   }
