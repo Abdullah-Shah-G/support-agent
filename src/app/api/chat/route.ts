@@ -84,12 +84,13 @@ export async function POST(request: Request) {
     };
 
     return NextResponse.json(response);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const isQuota = error?.status === 429 || error?.code === "insufficient_quota";
+    const message = isQuota
+      ? "The AI service is currently unavailable due to API quota limits. Please check your OpenAI billing."
+      : "Internal server error";
+    return NextResponse.json({ error: message }, { status: isQuota ? 503 : 500 });
   }
 }
 
@@ -132,8 +133,12 @@ export async function PUT(request: Request) {
         collected_fields: getCollectedFields(session_id),
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Confirmation error:", error);
-    return NextResponse.json({ error: "Failed to process confirmation" }, { status: 500 });
+    const isQuota = error?.status === 429 || error?.code === "insufficient_quota";
+    return NextResponse.json(
+      { error: isQuota ? "API quota exceeded. Check your OpenAI billing." : "Failed to process confirmation" },
+      { status: isQuota ? 503 : 500 }
+    );
   }
 }

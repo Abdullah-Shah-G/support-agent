@@ -1,15 +1,13 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { ChatMessage } from "./types";
 
-let client: OpenAI | null = null;
+let genAI: GoogleGenerativeAI | null = null;
 
-function getClient(): OpenAI {
-  if (!client) {
-    client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+function getClient(): GoogleGenerativeAI {
+  if (!genAI) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
   }
-  return client;
+  return genAI;
 }
 
 const SYSTEM_PROMPT = `You are SupportAgent. Your job is to collect relevant details from the user to create a support ticket. Always ask for missing required fields in separate clarifying turns. Required ticket fields: title, description, priority (low/medium/high), customer_email, product_id (optional), attachments (optional).
@@ -22,15 +20,19 @@ After outputting the JSON, summarize the ticket to the user and ask for confirma
 export async function generateReply(
   messages: ChatMessage[]
 ): Promise<string> {
-  const response = await getClient().chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0.2,
-    max_tokens: 300,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...messages.map((m) => ({ role: m.role as "user" | "assistant" | "system", content: m.content })),
-    ],
+  const history = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user" as "user" | "model",
+    parts: [{ text: m.content }],
+  }));
+
+  const lastMsg = history.pop();
+  const model = getClient().getGenerativeModel({
+    model: "gemini-1.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+    generationConfig: { maxOutputTokens: 300, temperature: 0.2 },
   });
 
-  return response.choices[0]?.message?.content ?? "I'm sorry, I couldn't process that.";
+  const chat = model.startChat({ history });
+  const result = await chat.sendMessage(lastMsg?.parts[0].text || "");
+  return result.response.text() || "I'm sorry, I couldn't process that.";
 }
