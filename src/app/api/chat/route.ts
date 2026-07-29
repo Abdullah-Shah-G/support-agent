@@ -3,6 +3,7 @@ import { generateReply } from "@/lib/openai";
 import {
   addMessage,
   getMessages,
+  getOrCreateSession,
   setStage,
   setTicket,
   setTicketId,
@@ -101,7 +102,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "session_id is required" }, { status: 400 });
     }
 
-    const { getOrCreateSession } = await import("@/lib/sessions");
     const session = getOrCreateSession(session_id);
 
     if (confirmed) {
