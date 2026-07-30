@@ -1,11 +1,3 @@
-node_modules/
-.next/
-out/
-build/
+__pycache__/
+*.pyc
 .env
-.env.local
-*.log
-.DS_Store
-Thumbs.db
-*.tsbuildinfo
-next-env.d.ts
