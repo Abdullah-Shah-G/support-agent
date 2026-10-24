@@ -17,6 +17,7 @@ def get_or_create(session_id: str) -> dict:
 def add_message(session_id: str, role: str, content: str):
     sess = get_or_create(session_id)
     sess["messages"].append({"role": role, "content": content})
+    del sess["messages"][:-10]
 
 
 def get_messages(session_id: str) -> list[dict]:
@@ -58,7 +59,7 @@ ticket_store: dict[str, dict] = {}
 
 def create_ticket(ticket: dict) -> str:
     ticket_id = f"TKT-{uuid.uuid4().hex[:8].upper()}"
-    ticket_store[ticket_id] = ticket
+    ticket_store[ticket_id] = ticket.copy()
     return ticket_id
 
 

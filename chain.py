@@ -1,18 +1,16 @@
 import os
 import re
 import json
+from functools import cache
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite",
-    api_key=os.getenv("GEMINI_API_KEY"),
-    max_output_tokens=300,
-    temperature=0.2,
-)
+@cache
+def get_llm():
+    return ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", api_key=os.getenv("GEMINI_API_KEY"), max_output_tokens=300, temperature=0.2)
 
 SYSTEM_PROMPT = """You are SupportAgent. Your job is to collect relevant details from the user to create a support ticket. Always ask for missing required fields in separate clarifying turns. Required ticket fields: title, description, priority (low/medium/high), customer_email, product_id (optional), attachments (optional).
 
@@ -31,7 +29,7 @@ async def generate_reply(messages: list[dict]) -> str:
         elif msg["role"] == "assistant":
             langchain_messages.append(AIMessage(content=msg["content"]))
 
-    result = await llm.ainvoke(langchain_messages)
+    result = await get_llm().ainvoke(langchain_messages)
     content = result.content
     if isinstance(content, list):
         content = "".join(c.get("text", "") for c in content)
