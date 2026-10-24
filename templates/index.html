@@ -32,7 +32,7 @@
   </div>
 
   <script>
-    const SID = "sess_" + Date.now();
+    const SID = crypto.randomUUID();
     const messagesEl = document.getElementById("messages");
     const emptyEl = document.getElementById("empty-state");
     const form = document.getElementById("chat-form");
@@ -44,8 +44,8 @@
       emptyEl?.remove();
       const div = document.createElement("div");
       div.className = role === "user" ? "text-right" : "text-left";
-      div.innerHTML = `<div class="inline-block rounded-lg px-4 py-3 max-w-[80%] ${role === "user" ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-800"}"><p class="text-sm whitespace-pre-wrap">${content}</p></div>`;
-      messagesEl.appendChild(div);
+      div.innerHTML = `<div class="inline-block rounded-lg px-4 py-3 max-w-[80%] ${role === "user" ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-800"}"><p class="text-sm whitespace-pre-wrap"></p></div>`;
+      div.querySelector("p").textContent = content; messagesEl.appendChild(div);
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
@@ -60,9 +60,10 @@
       confirmBar.classList.add("hidden");
       try {
         const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: SID, message }) });
-        const data = await res.json();
+        if (!res.ok) throw new Error("Request failed"); const data = await res.json();
         addMessage("assistant", data.reply);
         currentStage = data.stage;
+        if (data.ticket_preview) addMessage("assistant", Object.entries(data.ticket_preview).map(([key, value]) => `${key}: ${value}`).join("\n"));
         if (data.stage === "confirming") confirmBar.classList.remove("hidden");
       } catch { addMessage("assistant", "Sorry, something went wrong."); } finally {
         input.disabled = false;
@@ -75,7 +76,7 @@
       confirmBar.classList.add("hidden");
       try {
         const res = await fetch("/api/chat", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: SID, confirmed: true }) });
-        const data = await res.json();
+        if (!res.ok) throw new Error("Request failed"); const data = await res.json();
         addMessage("assistant", data.reply);
       } catch { addMessage("assistant", "Failed to create ticket."); }
     });
@@ -84,7 +85,7 @@
       confirmBar.classList.add("hidden");
       try {
         const res = await fetch("/api/chat", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: SID, confirmed: false }) });
-        const data = await res.json();
+        if (!res.ok) throw new Error("Request failed"); const data = await res.json();
         addMessage("assistant", data.reply);
       } catch { addMessage("assistant", "Failed to cancel."); }
     });
